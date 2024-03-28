@@ -15,7 +15,7 @@ class FoodRepositoryImpl(
     private val foodService: FoodInterface
 ) : FoodRepository {
     override suspend fun getMealsFromNetwork(): Resource<ListMeals> {
-        return foodService.getMeals()
+        return foodService.getMeals().also { it.data?.let { it1 -> foodDao.insertListMeal(it1) } }
     }
 
     override fun getMealsFromDB(): Flow<List<Meal>> {
@@ -23,7 +23,13 @@ class FoodRepositoryImpl(
     }
 
     override suspend fun getCategoriesFromNetwork(): Resource<ListCategories> {
-        return foodService.getCategories()
+        return foodService.getCategories().also {
+            it.data?.let { it1 ->
+                foodDao.insertListCategories(
+                    it1
+                )
+            }
+        }
     }
 
     override fun getCategoriesFromDB(): Flow<List<Category>> {

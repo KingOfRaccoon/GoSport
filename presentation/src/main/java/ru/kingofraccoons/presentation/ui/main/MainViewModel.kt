@@ -52,7 +52,16 @@ class MainViewModel(
                 else
                     convertResourceToMealsUIState(mealsNetwork, mealsNetwork.data)
             } else {
-                convertResourceToMealsUIState(Resource.Success(ListMeals(meals)), ListMeals(meals))
+                if (selectedCategory.isNotEmpty())
+                    convertResourceToMealsUIState(
+                        Resource.Success(ListMeals(meals)),
+                        ListMeals(meals.filter { it.strCategory == selectedCategory })
+                    )
+                else
+                    convertResourceToMealsUIState(
+                        Resource.Success(ListMeals(meals)),
+                        ListMeals(meals)
+                    )
             }
         }
 
