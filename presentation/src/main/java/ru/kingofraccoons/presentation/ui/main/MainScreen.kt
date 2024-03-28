@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +39,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import org.koin.compose.koinInject
 import ru.kingofraccoons.domain.entity.Meal
@@ -191,7 +193,10 @@ fun ItemMeal(meal: Meal) {
             Modifier
                 .weight(1f), Arrangement.spacedBy(8.dp)
         ) {
-            Text(text = meal.strMeal)
+            Text(
+                text = meal.strMeal,
+                style = TextStyle(fontWeight = FontWeight.Black, fontSize = 18.sp)
+            )
             Text(text = meal.ingredients().joinToString { it })
 
             OutlinedButton(
