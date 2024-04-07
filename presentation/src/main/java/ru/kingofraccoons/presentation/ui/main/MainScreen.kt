@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChipDefaults
@@ -54,6 +55,8 @@ fun MainScreen(viewModel: MainViewModel = koinInject()) {
     val listState = rememberLazyListState()
     val categories = viewModel.getCategories().collectAsState(CategoriesUIState.Loading())
     val meals = viewModel.getMeals().collectAsState(MealsUIState.Loading())
+    val title = viewModel.getTitle().collectAsState(initial = "Москва")
+    val isNetwork = viewModel.getNetworkFlow().collectAsState()
 
     Scaffold(
         Modifier.fillMaxSize(),
@@ -65,7 +68,7 @@ fun MainScreen(viewModel: MainViewModel = koinInject()) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(text = "Москва", color = MaterialTheme.colorScheme.onBackground)
+                        Text(text = title.value, color = MaterialTheme.colorScheme.onBackground)
                         Icon(
                             Icons.Default.KeyboardArrowDown,
                             null,
@@ -149,25 +152,49 @@ fun MainScreen(viewModel: MainViewModel = koinInject()) {
             listState
         ) {
             item {
-                RowBanners(
-                    listOf(
-                        "https://i.ibb.co/vqNthbK/Rectangle-38.png",
-                        "https://i.ibb.co/jLkF1hY/Rectangle-39.png"
+                if (isNetwork.value)
+                    RowBanners(
+                        listOf(
+                            "https://i.ibb.co/vqNthbK/Rectangle-38.png",
+                            "https://i.ibb.co/jLkF1hY/Rectangle-39.png"
+                        )
                     )
-                )
             }
 
             stickyHeader {
-                RowTags(categories.value, viewModel::setSelectedCategory)
+                RowTags(categories.value, viewModel::setSelectedCategory, viewModel::loadCategories)
             }
 
-            ColumnMeals(meals.value)
+            when (val mealsUIState = meals.value) {
+                is MealsUIState.Error -> {
+                    item {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Проблема с загрузкой блюд",
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+
+                            Button(onClick = viewModel::loadMeals) {
+                                Text(text = "Попробуйте снова")
+                            }
+                        }
+                    }
+                }
+
+                is MealsUIState.Loading -> {}
+                is MealsUIState.Success -> ColumnMeals(mealsUIState)
+            }
         }
     }
 }
 
-fun LazyListScope.ColumnMeals(meals: MealsUIState) {
-    items(meals.data?.meals.orEmpty(), { it.idMeal }) {
+fun LazyListScope.ColumnMeals(meals: MealsUIState.Success) {
+    items(meals.data.meals, { it.idMeal }) {
         ItemMeal(it)
     }
 }
@@ -233,36 +260,62 @@ fun RowBanners(images: List<String>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RowTags(categories: CategoriesUIState, setSelectedCategory: (String) -> Unit) {
-    LazyRow(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        items(categories.data?.categories.orEmpty(), { it.idCategory }) {
-            ElevatedFilterChip(
-                selected = false,
-                onClick = { setSelectedCategory(it.strCategory) },
-                label = {
-                    Text(
-                        text = it.strCategory,
-                        Modifier.padding(8.dp),
-                        if (categories.selectedCategory == it.strCategory)
-                            MaterialTheme.colorScheme.onPrimary
-                        else
-                            MaterialTheme.colorScheme.onSurface
+fun RowTags(
+    categories: CategoriesUIState,
+    setSelectedCategory: (String) -> Unit,
+    reloadTags: () -> Unit
+) {
+    when (categories) {
+        is CategoriesUIState.Error -> {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp), horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Проблема с загрузкой категорий",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Button(onClick = reloadTags) {
+                    Text(text = "Попробуйте снова")
+                }
+            }
+        }
+
+        is CategoriesUIState.Loading -> {}
+        is CategoriesUIState.Success -> {
+            LazyRow(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .background(MaterialTheme.colorScheme.background),
+            ) {
+                items(categories.data.categories, { it.idCategory }) {
+                    ElevatedFilterChip(
+                        selected = false,
+                        onClick = { setSelectedCategory(it.strCategory) },
+                        label = {
+                            Text(
+                                text = it.strCategory,
+                                Modifier.padding(8.dp),
+                                if (categories.selectedCategory == it.strCategory)
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        elevation = FilterChipDefaults.elevatedFilterChipElevation(4.dp),
+                        colors = FilterChipDefaults.elevatedFilterChipColors(
+                            if (categories.selectedCategory == it.strCategory)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.surface
+                        ),
+                        modifier = Modifier.padding(4.dp)
                     )
-                },
-                elevation = FilterChipDefaults.elevatedFilterChipElevation(4.dp),
-                colors = FilterChipDefaults.elevatedFilterChipColors(
-                    if (categories.selectedCategory == it.strCategory)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.surface
-                ),
-                modifier = Modifier.padding(4.dp)
-            )
+                }
+            }
         }
     }
 }

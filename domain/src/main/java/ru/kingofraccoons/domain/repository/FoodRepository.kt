@@ -1,6 +1,7 @@
 package ru.kingofraccoons.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import ru.kingofraccoons.domain.entity.Category
 import ru.kingofraccoons.domain.entity.ListCategories
 import ru.kingofraccoons.domain.entity.ListMeals
@@ -13,4 +14,6 @@ interface FoodRepository {
 
     suspend fun getCategoriesFromNetwork(): Resource<ListCategories>
     fun getCategoriesFromDB(): Flow<List<Category>>
+
+    fun getNetworkFlow(): StateFlow<Boolean>
 }

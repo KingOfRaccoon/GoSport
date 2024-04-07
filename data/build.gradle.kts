@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.kingofraccoons.data1"
+    namespace = "ru.kingofraccoons.data"
     compileSdk = 34
 
     defaultConfig {

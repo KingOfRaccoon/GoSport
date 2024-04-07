@@ -1,6 +1,8 @@
 package ru.kingofraccoons.data.repository
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import ru.kingofraccoons.data.network.CustomConnectivityManager
 import ru.kingofraccoons.data.source.database.FoodDao
 import ru.kingofraccoons.data.source.network.FoodInterface
 import ru.kingofraccoons.domain.entity.Category
@@ -12,7 +14,8 @@ import ru.kingofraccoons.domain.util.Resource
 
 class FoodRepositoryImpl(
     private val foodDao: FoodDao,
-    private val foodService: FoodInterface
+    private val foodService: FoodInterface,
+    private val customConnectivityManager: CustomConnectivityManager
 ) : FoodRepository {
     override suspend fun getMealsFromNetwork(): Resource<ListMeals> {
         return foodService.getMeals().also { it.data?.let { it1 -> foodDao.insertListMeal(it1) } }
@@ -36,21 +39,7 @@ class FoodRepositoryImpl(
         return foodDao.getCategories()
     }
 
-//    override suspend fun getMeals(): Flow<Resource<ListMeals>> {
-//        return combine(foodDao.getMeals(), MutableStateFlow(foodService.getMeals())){ local, remote ->
-//            if (remote is Resource.Success)
-//                remote.also { foodDao.insertListMeal(it.data) }
-//            else
-//                Resource.Success(ListMeals(local))
-//        }
-//    }
-//
-//    override suspend fun getCategories(): Flow<Resource<ListCategories>> {
-//        return combine(foodDao.getCategories(), MutableStateFlow(foodService.getCategories())){ local, remote ->
-//            if (remote is Resource.Success && local != remote.data.categories)
-//                remote.also { foodDao.insertListCategories(it.data) }
-//            else
-//                Resource.Success(ListCategories(local))
-//        }
-//    }
+    override fun getNetworkFlow(): StateFlow<Boolean> {
+        return customConnectivityManager.connectionAsStateFlow
+    }
 }

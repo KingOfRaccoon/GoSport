@@ -6,17 +6,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.kingofraccoons.domain.entity.ListCategories
 import ru.kingofraccoons.domain.entity.ListMeals
 import ru.kingofraccoons.domain.usecase.GetCategoriesUseCase
 import ru.kingofraccoons.domain.usecase.GetMealsUseCase
+import ru.kingofraccoons.domain.usecase.GetNetworkStateUseCase
 import ru.kingofraccoons.domain.util.Resource
 
 class MainViewModel(
     private val getCategoriesUseCase: GetCategoriesUseCase,
-    private val getMealsUseCase: GetMealsUseCase
+    private val getMealsUseCase: GetMealsUseCase,
+    private val getNetworkStateUseCase: GetNetworkStateUseCase
 ) : ViewModel() {
     private val _selectedCategoryFlow = MutableStateFlow("")
     private val selectedCategoryFlow = _selectedCategoryFlow.asStateFlow()
@@ -28,13 +31,25 @@ class MainViewModel(
         MutableStateFlow<Resource<ListMeals>>(Resource.Loading())
 
     init {
+        loadMeals()
+        loadCategories()
+    }
+    fun getNetworkFlow() = getNetworkStateUseCase.getNetworkState()
+
+    fun loadMeals() {
         viewModelScope.launch(Dispatchers.IO) {
             _networkMealsFlow.emit(getMealsUseCase.getMealsFromNetwork())
         }
+    }
 
+    fun loadCategories() {
         viewModelScope.launch(Dispatchers.IO) {
             _networkCategoriesFlow.emit(getCategoriesUseCase.getCategoriesFromNetwork())
         }
+    }
+
+    fun getTitle() = getNetworkStateUseCase.getNetworkState().map {
+        if (it) "Москва" else "Нет подключения"
     }
 
     fun getMeals() =
@@ -51,6 +66,8 @@ class MainViewModel(
                     )
                 else
                     convertResourceToMealsUIState(mealsNetwork, mealsNetwork.data)
+            } else if (mealsNetwork is Resource.Error && meals.isEmpty()) {
+                MealsUIState.Error(mealsNetwork.message)
             } else {
                 if (selectedCategory.isNotEmpty())
                     convertResourceToMealsUIState(
@@ -77,6 +94,8 @@ class MainViewModel(
                 categoriesNetwork.data,
                 selectedCategory
             )
+        } else if (categoriesNetwork is Resource.Error && categories.isEmpty()) {
+            CategoriesUIState.Error(categoriesNetwork.message)
         } else {
             convertResourceToCategoriesUIState(
                 Resource.Success(ListCategories(categories)),
